@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartAssist AI</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,sans-serif;background:#f4f6fb;color:#172033}
+    .wrap{max-width:900px;margin:35px auto;padding:0 18px}
+    .header{background:#19192d;color:white;padding:24px;border-radius:18px 18px 0 0}
+    .header h1{margin:0 0 6px}.header p{margin:0;color:#cbd2ee}
+    .chat{background:white;min-height:500px;padding:22px;border-left:1px solid #ddd;border-right:1px solid #ddd}
+    .msg{max-width:78%;padding:12px 15px;margin:12px 0;border-radius:14px;white-space:pre-wrap;line-height:1.45}
+    .user{margin-left:auto;background:#e8efff}.bot{background:#f0f1f5}
+    .meta{font-size:12px;color:#667085;margin-top:5px}
+    .inputrow{display:flex;gap:10px;background:white;padding:18px;border-radius:0 0 18px 18px;border:1px solid #ddd}
+    input{flex:1;padding:14px;border:1px solid #ccc;border-radius:10px;font-size:16px}
+    button{border:0;border-radius:10px;padding:0 20px;background:#19192d;color:white;font-weight:bold;cursor:pointer}
+    .examples{margin:12px 0;display:flex;gap:8px;flex-wrap:wrap}
+    .examples button{padding:8px 12px;background:#e7e9f2;color:#222}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>🤖 SmartAssist</h1>
+    <p>AI-Powered Customer Support Chatbot</p>
+  </div>
+  <div class="chat" id="chat">
+    <div class="msg bot">Hello! 👋 Ask me about refunds, accounts, passwords, technical issues, or general FAQs.</div>
+  </div>
+  <div class="examples">
+    <button onclick="useExample('How can I reset my password?')">Password help</button>
+    <button onclick="useExample('What is your refund policy?')">Refund</button>
+    <button onclick="useExample('My app is not working')">Technical issue</button>
+  </div>
+  <div class="inputrow">
+    <input id="input" placeholder="Type your question..." onkeydown="if(event.key==='Enter')send()">
+    <button onclick="send()">Send</button>
+  </div>
+</div>
+
+<script>
+const sessionId = "session-" + Math.random().toString(36).slice(2,10);
+const chat = document.getElementById("chat");
+const input = document.getElementById("input");
+
+function addMessage(text, cls, meta=""){
+  const div=document.createElement("div");
+  div.className="msg "+cls;
+  div.textContent=text;
+  if(meta){
+    const m=document.createElement("div");
+    m.className="meta";
+    m.textContent=meta;
+    div.appendChild(m);
+  }
+  chat.appendChild(div);
+  chat.scrollTop=chat.scrollHeight;
+}
+function useExample(t){input.value=t; input.focus();}
+async function send(){
+  const message=input.value.trim();
+  if(!message)return;
+  addMessage(message,"user"); input.value="";
+  addMessage("Thinking...","bot");
+  const thinking=chat.lastElementChild;
+  try{
+    const res=await fetch("/chat",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({session_id:sessionId,message})
+    });
+    const data=await res.json();
+    thinking.remove();
+    addMessage(data.answer,"bot",
+      "Intent: "+data.intent+(data.escalate?" • Human handoff suggested":""));
+  }catch(e){
+    thinking.remove();
+    addMessage("Server error. Make sure the FastAPI server is running.","bot");
+  }
+}
+</script>
+</body>
+</html>
